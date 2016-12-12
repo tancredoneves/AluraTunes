@@ -52,13 +52,13 @@ namespace AluraTunes
                 var queryA = from a in contexto.Artistas // join alb in contexto.Albums on a.ArtistaId equals alb.ArtistaId
                              where a.Nome.Contains(textoBusca)
                              select a; // new { NomeArtista = a.Nome, NomeAlbum = Alb.Titulo}
-
+                //
                 // com metodo para consulta simples
-
+                //
                 var query2 = contexto.Artistas.Where(a => a.Nome.Contains(textoBusca));
-
+                //
                 // sem o join, so com chaves estrangeiras 
-
+                //
                 var query3 = from alb in contexto.Albums
                              where alb.Artista.Nome.Contains(textoBusca)
                              select new
@@ -76,9 +76,61 @@ namespace AluraTunes
                 
                 GetFaixas(contexto, "valorbuscaArtista", "ValorbuscaAlbum");
 
+                // usando Count sintaxe Consulta
+                var queryCount = from f in contexto.Faixas
+                                 where f.Album.Artista.Nome == "Led Zeppelin"
+                                 select f;
+
+                //var quantidade = queryCount.Count();
+                // usando Count sintaxe metodo
+                var quantidade = contexto.Faixas
+                                 .Count(f => f.Album.Artista.Nome == "Led Zeppelin");
+                Console.WriteLine("Led Zeppelin tem {0}", quantidade);
+
+                
+                // totalizando uma consulta Linq SUM
+                var querySum = from inf in contexto.ItemNotaFiscals
+                               where inf.Faixa.Album.Artista.Nome == "Led Zeppelin" //evita 3 joins
+                               select new { totalDoItem = inf.Quantidade * inf.PrecoUnitario };
+                var totalDoArtista = querySum.Sum(q => q.totalDoItem);
+                Console.WriteLine("total do artista:", totalDoArtista);
+
+                //Group By e variaveis locais let
+
+                var queryGroupBy = from inf in contexto.ItemNotaFiscals
+                                   where inf.Faixa.Album.Artista.Nome == "Led Zeppelin" //evita 3 joins
+                                   group inf by inf.Faixa.Album into agrupado
+                                   let vendasPorAlbum = agrupado.Sum(a => a.Quantidade * a.PrecoUnitario)
+                                   orderby vendasPorAlbum
+                                   descending
+                                   select new
+                                   {
+                                       TituloDoAlbum = agrupado.Key.Titulo,
+                                       TotalProAlbum = vendasPorAlbum
+                                   };
+                foreach (var agrupado in queryGroupBy)
+                {
+                    Console.WriteLine("{0}\t{1}", agrupado.TituloDoAlbum.PadRight(40),
+                                                  agrupado.TotalProAlbum);
+                }
+
+
+
+
             }
             Console.ReadKey();
         }
+
+
+
+
+
+
+
+
+
+
+
 
         //criando um metodo de busca por artista ou album
 
@@ -100,13 +152,15 @@ namespace AluraTunes
 
             query4 = query4.OrderBy(q => q.Album.Titulo).ThenBy(q => q.Nome);
 
-
-
             foreach (var faixa in query4)
             {
+                //PadRight(40) numero de caracteres
                 Console.WriteLine("{0}\t{1}", faixa.Album.Titulo.PadRight(40), faixa.Nome);
             }
+            
         }
+
+
 
 
 
